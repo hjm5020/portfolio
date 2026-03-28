@@ -194,10 +194,10 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">배경</h2>
         <p>
-            카카오 임직원 대상 휴양지 예약 시스템에서, 인기 휴양지의 예약 오픈 시
-            동시에 다수의 사용자가 예약 요청을 보내는 상황이 빈번하게 발생했습니다.
-            기존 로직에서는 동일 사용자가 짧은 시간 내 중복 요청을 보낼 경우
-            이를 제대로 차단하지 못하는 문제가 있었습니다.
+            카카오 임직원 대상 휴양지 예약 시스템에서, 인기 휴양지 예약 오픈 시
+            동일 사용자의 중복 예약이 발생하는 실제 장애가 있었습니다.
+            임시 조치로 장애를 처리한 뒤, 근본적인 원인을 분석하여
+            멀티 서버 환경에서도 안전하게 동작하는 동시성 제어 방안을 설계하고 적용했습니다.
         </p>
     </section>
 
@@ -205,13 +205,12 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">문제 정의</h2>
         <ul>
-            <li>동시 요청 시 동일 사용자의 중복 예약이 발생할 수 있는 구조적 취약점</li>
-            <li>DB 레벨의 유니크 제약만으로는 사용자 경험이 좋지 않음 (에러 메시지 노출)</li>
-            <li>단순 synchronized 처리는 멀티 서버 환경에서 동작하지 않음</li>
+            <li>동일 사용자가 짧은 시간 내 중복 요청을 보낼 경우, 애플리케이션 레벨의 중복 체크만으로는 동시 요청을 차단하지 못함</li>
+            <li>단순 synchronized 처리는 멀티 서버 환경에서 서버 간 상태를 공유하지 않아 동작하지 않음</li>
         </ul>
 
         <div class="ps-diagram">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">문제 상황</p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">장애 상황</p>
             <div class="ps-flow">
                 <span class="ps-flow-item">사용자 A 요청 1</span>
                 <span class="ps-flow-arrow">→</span>
@@ -238,14 +237,21 @@
             멀티 서버 환경에서의 동시성 제어를 위해 분산 락 방식을 검토했습니다.
             DB 기반 비관적 락, Redis 기반 분산 락, ZooKeeper 기반 락 등의 선택지가 있었고,
             이미 세션 관리에 Redis를 사용하고 있어 추가 인프라 없이 적용 가능한
-            Redis 분산 락을 선택했습니다.
+            Redisson 기반 Redis 분산 락을 선택했습니다.
         </p>
 
-        <p><strong>2. 사용자 Key 기반 락 설계</strong></p>
+        <p><strong>2. 락 키 설계 및 구현</strong></p>
         <p>
-            예약 요청 시 사용자 ID를 기반으로 Redis에 락 키를 생성하여,
-            동일 사용자의 동시 요청을 서버와 관계없이 차단하도록 설계했습니다.
-            TTL을 설정하여 장애 상황에서도 락이 자동으로 해제되도록 안전장치를 마련했습니다.
+            락 키를 <code>userId:startDate:endDate</code> 패턴으로 설계하여,
+            동일 사용자가 같은 날짜에 중복 예약을 시도하는 것을 서버와 관계없이 차단하도록 했습니다.
+            <code>tryLock(10, TimeUnit.MILLISECONDS)</code>으로 10ms 내에 락을 획득하지 못하면
+            즉시 "같은 날짜에 두번 이상 신청하실 수 없습니다"로 응답하여 사용자에게 빠른 피드백을 제공합니다.
+        </p>
+        <p>
+            락 획득 후에는 패널티 체크, 연간 신청일수 제한, 잔여 객실 확인 등
+            비즈니스 검증을 순차적으로 수행하고, <code>finally</code> 블록에서
+            <code>isHeldByCurrentThread()</code> 확인 후 안전하게 락을 해제하여
+            장애 상황에서의 데드락을 방지했습니다.
         </p>
 
         <div class="ps-diagram">
@@ -253,29 +259,22 @@
             <div class="ps-flow">
                 <span class="ps-flow-item">예약 요청</span>
                 <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item solution">Redis 락 획득</span>
+                <span class="ps-flow-item solution">Redisson 락 획득</span>
                 <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item solution">예약 처리</span>
+                <span class="ps-flow-item solution">비즈니스 검증 + 예약 처리</span>
                 <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item solution">락 해제</span>
+                <span class="ps-flow-item solution">finally 락 해제</span>
             </div>
         </div>
-
-        <p><strong>3. 세션 및 캐싱 전략 통합</strong></p>
-        <p>
-            분산 락 도입과 함께 기존에 분산되어 있던 Redis 활용 방식을 통합 정리했습니다.
-            사용자 로그인 세션 관리, 자주 조회되는 예약 현황 데이터 캐싱,
-            그리고 분산 락까지 Redis 하나로 일관성 있게 관리하도록 개선했습니다.
-        </p>
     </section>
 
     <!-- 4. 결과 -->
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">결과</h2>
         <ul>
-            <li>멀티 서버 환경에서 동일 사용자의 중복 예약 문제 해결</li>
-            <li>TTL 기반 자동 해제로 장애 상황에서의 데드락 방지</li>
-            <li>Redis 활용 전략 통합으로 인프라 관리 포인트 단순화</li>
+            <li>멀티 서버 환경에서 동일 사용자의 중복 예약 장애 재발 방지</li>
+            <li>10ms 타임아웃으로 중복 요청 시 빠른 사용자 피드백 제공</li>
+            <li>finally 블록 기반 안전한 락 해제로 데드락 방지</li>
         </ul>
     </section>
 
@@ -283,10 +282,11 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">회고</h2>
         <p>
-            단일 서버에서는 간단한 동기화로 해결될 문제도, 분산 환경에서는
-            완전히 다른 접근이 필요하다는 것을 실감한 프로젝트였습니다.
-            Redis 분산 락이라는 해결책뿐만 아니라, 기존에 흩어져 있던
-            Redis 활용 방식을 함께 정리할 수 있었던 의미 있는 경험이었습니다.
+            실제 장애를 경험하면서, 단일 서버에서는 문제가 없던 로직이
+            멀티 서버 환경에서는 완전히 다른 접근이 필요하다는 것을 체감했습니다.
+            임시 조치로 급한 불을 끈 뒤 근본 원인을 분석하고,
+            Redisson 분산 락으로 구조적으로 해결하는 과정을 통해
+            장애 대응과 후속 개선의 중요성을 배울 수 있었습니다.
         </p>
     </section>
 

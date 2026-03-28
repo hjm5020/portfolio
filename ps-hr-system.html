@@ -215,7 +215,9 @@
         <p>
             다수의 조직(테넌트)이 하나의 인사 자원 관리 시스템을 공유해야 하는 요구사항이 있었습니다.
             각 조직마다 별도 시스템을 구축하면 유지보수 비용이 기하급수적으로 증가하고,
-            조직 추가 시마다 신규 배포가 필요한 구조적 한계가 있었습니다.
+            조직 추가 시마다 인프라를 별도로 구성해야 하는 구조적 한계가 있었습니다.
+            제한된 비용과 일정 안에서 데이터 격리, 인증 분리, 주기적 데이터 동기화까지
+            하나의 아키텍처로 해결해야 하는 과제였습니다.
         </p>
     </section>
 
@@ -223,9 +225,9 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">문제 정의</h2>
         <ul>
-            <li>조직마다 독립적인 데이터 격리가 필요하지만, 인프라 비용은 최소화해야 함</li>
+            <li>조직마다 독립적인 데이터 격리가 필요하지만, 인프라 비용과 개발 일정을 최소화해야 함</li>
             <li>새로운 조직 추가 시 코드 변경 없이 확장 가능한 구조가 필요</li>
-            <li>기존 동기식 처리 방식으로 인해 대량 데이터 처리 시 사용자 응답 지연 발생</li>
+            <li>멀티 테넌시 구조에서 테넌트별 주기적 데이터 동기화(공휴일, 급여 마감일 등)를 서비스에 영향 없이 처리해야 함</li>
         </ul>
     </section>
 
@@ -233,54 +235,70 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">해결 과정</h2>
 
-        <p><strong>1. 테넌트 분리 전략 선택</strong></p>
+        <p><strong>1. 테넌트 분리 전략 — Shared Database + Shared Schema 선택</strong></p>
         <p>
             멀티 테넌시 구현 방식은 크게 세 가지가 있었습니다.
-            DB 인스턴스 분리, 스키마 분리, 그리고 공유 테이블 + 테넌트 컬럼 방식.
-            각 방식의 트레이드오프를 분석한 결과, 프로젝트 규모와 비용 효율성을 고려하여
-            적합한 분리 전략을 선택했습니다.
+            DB 인스턴스 분리는 격리성이 높지만 테넌트 수만큼 DB를 운영해야 해서 비용과 관리 부담이 컸고,
+            스키마 분리는 JPA 설정 복잡도가 높아 제한된 일정 안에 안정적으로 구현하기 어렵다고 판단했습니다.
+            비용과 시간을 고려했을 때 컬럼 분리 방식이 가장 현실적이었고,
+            단일 DB에서 TENANT_ID / COMPANY_ID 컬럼으로 데이터를 격리하는
+            Shared Database + Shared Schema 방식을 선택했습니다.
         </p>
-
-        <div class="ps-diagram">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">테넌트 분리 방식 비교</p>
-            <div class="ps-flow">
-                <span class="ps-flow-item">DB 분리<br><small style="font-weight:400; font-size: 0.72rem;">격리성 ↑ 비용 ↑</small></span>
-                <span class="ps-flow-arrow">vs</span>
-                <span class="ps-flow-item">스키마 분리<br><small style="font-weight:400; font-size: 0.72rem;">균형</small></span>
-                <span class="ps-flow-arrow">vs</span>
-                <span class="ps-flow-item">컬럼 분리<br><small style="font-weight:400; font-size: 0.72rem;">비용 ↓ 격리성 ↓</small></span>
-            </div>
-        </div>
-
-        <p><strong>2. 비동기 처리 전환</strong></p>
         <p>
-            대량 데이터 처리(의료비 일괄 정산, 조직 정보 동기화 등)에서 동기식 처리가
-            사용자 응답 시간을 크게 지연시키는 문제가 있었습니다.
-            이를 비동기 백그라운드 처리로 전환하여 사용자 요청에 대한 즉시 응답을 보장하고,
-            실제 처리는 백그라운드에서 수행하도록 개선했습니다.
+            애플리케이션 레벨의 쿼리 필터링(WHERE COMPANY_ID)으로 데이터를 격리하고,
+            단일 HikariCP 커넥션 풀로 운영하여 리소스 관리를 단순화했습니다.
+            다만 이 방식은 WHERE 조건 누락 시 다른 테넌트의 데이터가 노출될 수 있는 위험이 있어,
+            코드 리뷰 시 쿼리 필터링 누락 여부를 중점적으로 검토하는 프로세스를 마련하여 보완했습니다.
         </p>
 
         <div class="ps-diagram">
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">처리 방식 변경</p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">테넌트 분리 방식 비교 → Shared DB + Shared Schema 채택</p>
             <div class="ps-flow">
-                <span class="ps-flow-item">사용자 요청</span>
-                <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item">즉시 응답 반환</span>
-                <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item">백그라운드 처리</span>
-                <span class="ps-flow-arrow">→</span>
-                <span class="ps-flow-item">완료 알림</span>
+                <span class="ps-flow-item" style="opacity: 0.5;">DB 분리<br><small style="font-weight:400; font-size: 0.72rem;">비용 ↑ 관리 부담 ↑</small></span>
+                <span class="ps-flow-arrow">vs</span>
+                <span class="ps-flow-item" style="opacity: 0.5;">스키마 분리<br><small style="font-weight:400; font-size: 0.72rem;">JPA 복잡도 ↑ 일정 초과</small></span>
+                <span class="ps-flow-arrow">vs</span>
+                <span class="ps-flow-item" style="background: #2563eb; color: #fff;">컬럼 분리 ✓<br><small style="font-weight:400; font-size: 0.72rem;">비용 ↓ 확장성 ↑</small></span>
             </div>
         </div>
+
+        <p><strong>2. 인증 및 세션 — 테넌트별 격리 설계</strong></p>
+        <p>
+            Keycloak OIDC를 통한 인증 후 OidcUserDto에서 companyId를 추출하여
+            UserDetail에 주입하는 구조로, 인증 시점부터 테넌트 식별이 자연스럽게 이루어지도록 했습니다.
+            세션은 Redis에 테넌트별 네임스페이스(dkt-ehr:session:{tenant}:user)를 적용하여
+            테넌트 간 세션 충돌을 방지했습니다.
+        </p>
+
+        <div class="ps-diagram">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">인증 → 테넌트 식별 흐름</p>
+            <div class="ps-flow">
+                <span class="ps-flow-item">Keycloak OIDC</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">OidcUserDto</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">UserDetail (companyId)</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">쿼리 필터링</span>
+            </div>
+        </div>
+
+        <p><strong>3. 테넌트별 배치 처리 — Spring Batch + @Scheduled</strong></p>
+        <p>
+            멀티 테넌시 구조에서 테넌트별로 주기적인 데이터 동기화(공휴일, 급여 마감일, 증명서 만료 등)가
+            필요했고, 이를 별도 schedule-module로 분리하여 Spring Batch 기반으로 처리했습니다.
+            서비스 모듈에 영향을 주지 않으면서 테넌트별 데이터를 순차적으로 처리하는 구조입니다.
+        </p>
     </section>
 
     <!-- 4. 결과 -->
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">결과</h2>
         <ul>
-            <li>다양한 조직 규모에 대응 가능한 유연한 멀티 테넌시 시스템 구축</li>
-            <li>신규 조직 추가 시 설정만으로 온보딩 가능한 확장성 확보</li>
-            <li>비동기 전환을 통해 대량 처리 시에도 사용자 응답성 유지</li>
+            <li>단일 DB 구조로 인프라 비용을 최소화하면서 다수 조직의 데이터 격리 확보</li>
+            <li>Keycloak 인증 + Redis 세션 네임스페이스로 인증 및 세션 레벨의 테넌트 격리 보장</li>
+            <li>배치 모듈 분리로 주기적 동기화 작업이 서비스 안정성에 영향을 주지 않는 구조 확보</li>
+            <li>신규 테넌트 추가 시 설정 기반 테넌트 식별로 빠른 온보딩 가능</li>
         </ul>
     </section>
 
@@ -288,10 +306,11 @@
     <section class="ps-section fade-up">
         <h2 class="ps-section-title">회고</h2>
         <p>
-            이 프로젝트를 통해 시스템 아키텍처 설계 단계에서의 의사결정이
-            이후 개발 과정과 유지보수에 얼마나 큰 영향을 미치는지 체감할 수 있었습니다.
-            단순히 기능을 구현하는 것을 넘어, 확장성과 비용 효율성 사이에서
-            균형을 찾는 경험을 쌓을 수 있었습니다.
+            멀티 테넌시 설계에서 가장 중요했던 것은 "완벽한 격리"가 아닌 "상황에 맞는 격리"를 선택하는 것이었습니다.
+            DB 분리 방식이 격리성 면에서는 우수하지만, 프로젝트의 비용과 일정을 고려하면
+            Shared Schema + 애플리케이션 레벨 필터링이 더 현실적인 선택이었습니다.
+            물론 이 방식은 쿼리 필터링 누락이라는 잠재적 위험이 있기 때문에,
+            코드 리뷰를 통한 지속적인 검증이 필수적이라는 점도 함께 배울 수 있었습니다.
         </p>
     </section>
 
