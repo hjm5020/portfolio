@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Solving — 인사 자원 시스템 | 홍종민</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --bg-card: #ffffff;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-text: #1e40af;
+            --text: #1a1a2e;
+            --text-secondary: #4a4a68;
+            --text-muted: #8888a0;
+            --border: #e8e8f0;
+            --tag-bg: #f0f4ff;
+            --tag-text: #3b5bdb;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg); color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* NAV */
+        .back-nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(250, 250, 250, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 2rem;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            color: var(--accent); text-decoration: none;
+            font-size: 0.88rem; font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover { opacity: 0.7; }
+        .back-link svg { width: 16px; height: 16px; }
+
+        /* CONTAINER */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+        }
+
+        /* HEADER */
+        .ps-badge {
+            display: inline-block;
+            padding: 0.25rem 0.7rem;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.75rem;
+        }
+        .ps-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+        .ps-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+        }
+
+        /* SECTION */
+        .ps-section {
+            margin-bottom: 2.5rem;
+        }
+        .ps-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 2px solid var(--accent-soft);
+        }
+        .ps-section p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 0.75rem;
+        }
+        .ps-section ul {
+            list-style: none;
+            display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        .ps-section ul li {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            padding-left: 1.1rem;
+            position: relative;
+            line-height: 1.7;
+        }
+        .ps-section ul li::before {
+            content: '·'; position: absolute; left: 0;
+            color: var(--accent); font-weight: 900; font-size: 1.1rem;
+        }
+
+        /* CODE BLOCK */
+        .ps-code {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+        .ps-code .comment { color: #6c7086; }
+        .ps-code .keyword { color: #cba6f7; }
+        .ps-code .string { color: #a6e3a1; }
+        .ps-code .annotation { color: #f9e2af; }
+
+        /* DIAGRAM */
+        .ps-diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .ps-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .ps-flow-item {
+            padding: 0.5rem 1rem;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .ps-flow-arrow {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* TAG */
+        .tag-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 1.5rem; }
+        .tag {
+            padding: 0.18rem 0.55rem;
+            background: var(--tag-bg); color: var(--tag-text);
+            border-radius: 5px; font-size: 0.75rem; font-weight: 600;
+        }
+
+        /* FOOTER */
+        .ps-footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        /* ANIMATION */
+        .fade-up {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        .fade-up.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 600px) {
+            .container { padding: 2rem 1rem 3rem; }
+            .ps-title { font-size: 1.3rem; }
+            .ps-flow { flex-direction: column; }
+            .ps-flow-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="back-nav">
+    <a href="index.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        포트폴리오로 돌아가기
+    </a>
+</nav>
+
+<div class="container">
+
+    <div class="fade-up">
+        <span class="ps-badge">Problem Solving</span>
+        <h1 class="ps-title">인사 자원 시스템 — 멀티 테넌시 아키텍처 설계</h1>
+        <p class="ps-meta">2024.07 ~ 2024.12 · 주식회사 디케이테크인</p>
+    </div>
+
+    <!-- 1. 배경 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">배경</h2>
+        <p>
+            다수의 조직(테넌트)이 하나의 인사 자원 관리 시스템을 공유해야 하는 요구사항이 있었습니다.
+            각 조직마다 별도 시스템을 구축하면 유지보수 비용이 기하급수적으로 증가하고,
+            조직 추가 시마다 신규 배포가 필요한 구조적 한계가 있었습니다.
+        </p>
+    </section>
+
+    <!-- 2. 문제 정의 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">문제 정의</h2>
+        <ul>
+            <li>조직마다 독립적인 데이터 격리가 필요하지만, 인프라 비용은 최소화해야 함</li>
+            <li>새로운 조직 추가 시 코드 변경 없이 확장 가능한 구조가 필요</li>
+            <li>기존 동기식 처리 방식으로 인해 대량 데이터 처리 시 사용자 응답 지연 발생</li>
+        </ul>
+    </section>
+
+    <!-- 3. 해결 과정 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">해결 과정</h2>
+
+        <p><strong>1. 테넌트 분리 전략 선택</strong></p>
+        <p>
+            멀티 테넌시 구현 방식은 크게 세 가지가 있었습니다.
+            DB 인스턴스 분리, 스키마 분리, 그리고 공유 테이블 + 테넌트 컬럼 방식.
+            각 방식의 트레이드오프를 분석한 결과, 프로젝트 규모와 비용 효율성을 고려하여
+            적합한 분리 전략을 선택했습니다.
+        </p>
+
+        <div class="ps-diagram">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">테넌트 분리 방식 비교</p>
+            <div class="ps-flow">
+                <span class="ps-flow-item">DB 분리<br><small style="font-weight:400; font-size: 0.72rem;">격리성 ↑ 비용 ↑</small></span>
+                <span class="ps-flow-arrow">vs</span>
+                <span class="ps-flow-item">스키마 분리<br><small style="font-weight:400; font-size: 0.72rem;">균형</small></span>
+                <span class="ps-flow-arrow">vs</span>
+                <span class="ps-flow-item">컬럼 분리<br><small style="font-weight:400; font-size: 0.72rem;">비용 ↓ 격리성 ↓</small></span>
+            </div>
+        </div>
+
+        <p><strong>2. 비동기 처리 전환</strong></p>
+        <p>
+            대량 데이터 처리(의료비 일괄 정산, 조직 정보 동기화 등)에서 동기식 처리가
+            사용자 응답 시간을 크게 지연시키는 문제가 있었습니다.
+            이를 비동기 백그라운드 처리로 전환하여 사용자 요청에 대한 즉시 응답을 보장하고,
+            실제 처리는 백그라운드에서 수행하도록 개선했습니다.
+        </p>
+
+        <div class="ps-diagram">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">처리 방식 변경</p>
+            <div class="ps-flow">
+                <span class="ps-flow-item">사용자 요청</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">즉시 응답 반환</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">백그라운드 처리</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item">완료 알림</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. 결과 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">결과</h2>
+        <ul>
+            <li>다양한 조직 규모에 대응 가능한 유연한 멀티 테넌시 시스템 구축</li>
+            <li>신규 조직 추가 시 설정만으로 온보딩 가능한 확장성 확보</li>
+            <li>비동기 전환을 통해 대량 처리 시에도 사용자 응답성 유지</li>
+        </ul>
+    </section>
+
+    <!-- 5. 회고 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">회고</h2>
+        <p>
+            이 프로젝트를 통해 시스템 아키텍처 설계 단계에서의 의사결정이
+            이후 개발 과정과 유지보수에 얼마나 큰 영향을 미치는지 체감할 수 있었습니다.
+            단순히 기능을 구현하는 것을 넘어, 확장성과 비용 효율성 사이에서
+            균형을 찾는 경험을 쌓을 수 있었습니다.
+        </p>
+    </section>
+
+    <div class="tag-list fade-up">
+        <span class="tag">Java</span>
+        <span class="tag">Spring Boot</span>
+        <span class="tag">JPA</span>
+        <span class="tag">Docker</span>
+        <span class="tag">Kubernetes</span>
+    </div>
+
+</div>
+
+<footer class="ps-footer">
+    <p>&copy; 2026 홍종민</p>
+</footer>
+
+<script>
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); }});
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

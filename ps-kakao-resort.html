@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Solving — 카카오 휴양지 예약 시스템 | 홍종민</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/pretendard/1.3.9/static/pretendard.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --bg-card: #ffffff;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --accent-text: #1e40af;
+            --text: #1a1a2e;
+            --text-secondary: #4a4a68;
+            --text-muted: #8888a0;
+            --border: #e8e8f0;
+            --tag-bg: #f0f4ff;
+            --tag-text: #3b5bdb;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg); color: var(--text);
+            line-height: 1.7;
+        }
+
+        .back-nav {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(250, 250, 250, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 2rem;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            color: var(--accent); text-decoration: none;
+            font-size: 0.88rem; font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover { opacity: 0.7; }
+        .back-link svg { width: 16px; height: 16px; }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+        }
+
+        .ps-badge {
+            display: inline-block;
+            padding: 0.25rem 0.7rem;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.75rem;
+        }
+        .ps-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+        .ps-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+        }
+
+        .ps-section { margin-bottom: 2.5rem; }
+        .ps-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 2px solid var(--accent-soft);
+        }
+        .ps-section p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 0.75rem;
+        }
+        .ps-section ul {
+            list-style: none;
+            display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        .ps-section ul li {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            padding-left: 1.1rem;
+            position: relative;
+            line-height: 1.7;
+        }
+        .ps-section ul li::before {
+            content: '·'; position: absolute; left: 0;
+            color: var(--accent); font-weight: 900; font-size: 1.1rem;
+        }
+
+        .ps-diagram {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .ps-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .ps-flow-item {
+            padding: 0.5rem 1rem;
+            background: var(--accent-soft);
+            color: var(--accent-text);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .ps-flow-arrow {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+        .ps-flow-item.problem {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .ps-flow-item.solution {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .tag-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 1.5rem; }
+        .tag {
+            padding: 0.18rem 0.55rem;
+            background: var(--tag-bg); color: var(--tag-text);
+            border-radius: 5px; font-size: 0.75rem; font-weight: 600;
+        }
+
+        .ps-footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        .fade-up {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        .fade-up.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 600px) {
+            .container { padding: 2rem 1rem 3rem; }
+            .ps-title { font-size: 1.3rem; }
+            .ps-flow { flex-direction: column; }
+            .ps-flow-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="back-nav">
+    <a href="index.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        포트폴리오로 돌아가기
+    </a>
+</nav>
+
+<div class="container">
+
+    <div class="fade-up">
+        <span class="ps-badge">Problem Solving</span>
+        <h1 class="ps-title">카카오 휴양지 예약 시스템 — Redis 분산 락 기반 동시성 제어</h1>
+        <p class="ps-meta">2024.01 ~ 2024.05 · 주식회사 디케이테크인</p>
+    </div>
+
+    <!-- 1. 배경 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">배경</h2>
+        <p>
+            카카오 임직원 대상 휴양지 예약 시스템에서, 인기 휴양지의 예약 오픈 시
+            동시에 다수의 사용자가 예약 요청을 보내는 상황이 빈번하게 발생했습니다.
+            기존 로직에서는 동일 사용자가 짧은 시간 내 중복 요청을 보낼 경우
+            이를 제대로 차단하지 못하는 문제가 있었습니다.
+        </p>
+    </section>
+
+    <!-- 2. 문제 정의 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">문제 정의</h2>
+        <ul>
+            <li>동시 요청 시 동일 사용자의 중복 예약이 발생할 수 있는 구조적 취약점</li>
+            <li>DB 레벨의 유니크 제약만으로는 사용자 경험이 좋지 않음 (에러 메시지 노출)</li>
+            <li>단순 synchronized 처리는 멀티 서버 환경에서 동작하지 않음</li>
+        </ul>
+
+        <div class="ps-diagram">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">문제 상황</p>
+            <div class="ps-flow">
+                <span class="ps-flow-item">사용자 A 요청 1</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item problem">서버 1</span>
+                <span class="ps-flow-arrow" style="visibility:hidden;">→</span>
+                <span class="ps-flow-item problem">중복 예약 발생</span>
+            </div>
+            <div class="ps-flow" style="margin-top: 0.5rem;">
+                <span class="ps-flow-item">사용자 A 요청 2</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item problem">서버 2</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item problem">중복 예약 발생</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 해결 과정 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">해결 과정</h2>
+
+        <p><strong>1. 분산 락 도입 검토</strong></p>
+        <p>
+            멀티 서버 환경에서의 동시성 제어를 위해 분산 락 방식을 검토했습니다.
+            DB 기반 비관적 락, Redis 기반 분산 락, ZooKeeper 기반 락 등의 선택지가 있었고,
+            이미 세션 관리에 Redis를 사용하고 있어 추가 인프라 없이 적용 가능한
+            Redis 분산 락을 선택했습니다.
+        </p>
+
+        <p><strong>2. 사용자 Key 기반 락 설계</strong></p>
+        <p>
+            예약 요청 시 사용자 ID를 기반으로 Redis에 락 키를 생성하여,
+            동일 사용자의 동시 요청을 서버와 관계없이 차단하도록 설계했습니다.
+            TTL을 설정하여 장애 상황에서도 락이 자동으로 해제되도록 안전장치를 마련했습니다.
+        </p>
+
+        <div class="ps-diagram">
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">해결 후 흐름</p>
+            <div class="ps-flow">
+                <span class="ps-flow-item">예약 요청</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item solution">Redis 락 획득</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item solution">예약 처리</span>
+                <span class="ps-flow-arrow">→</span>
+                <span class="ps-flow-item solution">락 해제</span>
+            </div>
+        </div>
+
+        <p><strong>3. 세션 및 캐싱 전략 통합</strong></p>
+        <p>
+            분산 락 도입과 함께 기존에 분산되어 있던 Redis 활용 방식을 통합 정리했습니다.
+            사용자 로그인 세션 관리, 자주 조회되는 예약 현황 데이터 캐싱,
+            그리고 분산 락까지 Redis 하나로 일관성 있게 관리하도록 개선했습니다.
+        </p>
+    </section>
+
+    <!-- 4. 결과 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">결과</h2>
+        <ul>
+            <li>멀티 서버 환경에서 동일 사용자의 중복 예약 문제 해결</li>
+            <li>TTL 기반 자동 해제로 장애 상황에서의 데드락 방지</li>
+            <li>Redis 활용 전략 통합으로 인프라 관리 포인트 단순화</li>
+        </ul>
+    </section>
+
+    <!-- 5. 회고 -->
+    <section class="ps-section fade-up">
+        <h2 class="ps-section-title">회고</h2>
+        <p>
+            단일 서버에서는 간단한 동기화로 해결될 문제도, 분산 환경에서는
+            완전히 다른 접근이 필요하다는 것을 실감한 프로젝트였습니다.
+            Redis 분산 락이라는 해결책뿐만 아니라, 기존에 흩어져 있던
+            Redis 활용 방식을 함께 정리할 수 있었던 의미 있는 경험이었습니다.
+        </p>
+    </section>
+
+    <div class="tag-list fade-up">
+        <span class="tag">Java</span>
+        <span class="tag">Spring Boot</span>
+        <span class="tag">JPA</span>
+        <span class="tag">Redis</span>
+    </div>
+
+</div>
+
+<footer class="ps-footer">
+    <p>&copy; 2026 홍종민</p>
+</footer>
+
+<script>
+const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); }});
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
