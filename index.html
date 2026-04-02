@@ -325,6 +325,28 @@
             color: var(--text-muted); font-size: 0.8rem;
         }
 
+        /* ===== PS INLINE (PDF 전용, 웹에서는 숨김) ===== */
+        .ps-inline {
+            display: none;
+            margin-top: 1rem;
+            padding-top: 0.85rem;
+            border-top: 1px dashed var(--border);
+        }
+        .ps-inline-label {
+            font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--accent); margin-bottom: 0.5rem;
+        }
+        .ps-inline-row {
+            display: flex; gap: 0.4rem;
+            font-size: 0.82rem; color: var(--text-secondary);
+            line-height: 1.7; margin-bottom: 0.25rem;
+        }
+        .ps-inline-row strong {
+            flex-shrink: 0; color: var(--text);
+            font-weight: 600; min-width: 2.8rem;
+        }
+
         /* ===== PDF BUTTON ===== */
         .pdf-btn {
             position: fixed; bottom: 2rem; right: 2rem; z-index: 200;
@@ -529,6 +551,13 @@
                     <span class="tag">Kubernetes</span>
                 </div>
                 <a href="ps-hr-system.html" class="ps-link">Problem Solving <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+                <!-- PDF 전용 PS 인라인 -->
+                <div class="ps-inline">
+                    <div class="ps-inline-label">Problem Solving — 멀티 테넌시 아키텍처 설계</div>
+                    <div class="ps-inline-row"><strong>문제</strong> 다수 조직의 데이터 격리가 필요하지만, 인프라 비용과 개발 일정을 최소화해야 하는 제약</div>
+                    <div class="ps-inline-row"><strong>해결</strong> Shared DB + Shared Schema 방식 채택, TENANT_ID 컬럼 기반 데이터 격리 · Keycloak OIDC 인증 시점에 테넌트 식별 · Redis 세션 네임스페이스로 테넌트 간 세션 충돌 방지 · Spring Batch 기반 배치 모듈 분리로 서비스 영향 없는 데이터 동기화</div>
+                    <div class="ps-inline-row"><strong>결과</strong> 단일 DB로 인프라 비용 최소화, 인증·세션 레벨 테넌트 격리 확보, 신규 테넌트 설정 기반 온보딩 가능</div>
+                </div>
             </div>
         </div>
 
@@ -584,6 +613,13 @@
                     <span class="tag">Redis</span>
                 </div>
                 <a href="ps-kakao-resort.html" class="ps-link">Problem Solving <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></a>
+                <!-- PDF 전용 PS 인라인 -->
+                <div class="ps-inline">
+                    <div class="ps-inline-label">Problem Solving — Redis 분산 락 기반 동시성 제어</div>
+                    <div class="ps-inline-row"><strong>문제</strong> 인기 휴양지 예약 오픈 시 동일 사용자의 중복 예약 발생, 멀티 서버 환경에서 synchronized로는 서버 간 상태 공유 불가</div>
+                    <div class="ps-inline-row"><strong>해결</strong> Redisson 기반 분산 락 도입, userId:startDate:endDate 패턴 락 키 설계 · tryLock(10ms) 타임아웃으로 중복 요청 즉시 차단 · finally 블록에서 isHeldByCurrentThread() 확인 후 안전한 락 해제</div>
+                    <div class="ps-inline-row"><strong>결과</strong> 멀티 서버 환경 중복 예약 재발 방지, 10ms 타임아웃으로 빠른 사용자 피드백, 데드락 방지 구조 확보</div>
+                </div>
             </div>
         </div>
 
@@ -761,6 +797,11 @@
             });
         });
 
+        // PDF 전용 PS 인라인 표시
+        document.querySelectorAll('.ps-inline').forEach(el => {
+            el.style.display = 'block';
+        });
+
         // fade-up 애니메이션 임시 해제
         document.querySelectorAll('.fade-up').forEach(el => {
             el.classList.add('visible');
@@ -786,6 +827,11 @@
                 el.style.display = display || '';
             });
             hero.style.paddingTop = origPadding || '';
+
+            // PS 인라인 다시 숨기기
+            document.querySelectorAll('.ps-inline').forEach(el => {
+                el.style.display = 'none';
+            });
 
             btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF 다운로드';
             btn.disabled = false;
