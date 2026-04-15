@@ -240,6 +240,48 @@
         }
         .fade-up.visible { opacity: 1; transform: translateY(0); }
 
+        /* PDF MODE — JS에서 .pdf-mode 클래스 추가 시 적용 */
+        body.pdf-mode {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        body.pdf-mode .hero {
+            padding: 0.8rem 2rem 0.5rem;
+        }
+        body.pdf-mode .hero h1 { font-size: 1.4rem; margin-bottom: 0.3rem; }
+        body.pdf-mode .hero-badge { margin-bottom: 0.5rem; }
+        body.pdf-mode .hero-desc { font-size: 0.82rem; line-height: 1.5; margin-bottom: 0; }
+        body.pdf-mode .paar-legend { padding: 0 2rem 0.5rem; }
+        body.pdf-mode .legend-row { margin-top: 0.4rem; }
+        body.pdf-mode .container { padding: 0 2rem 0; }
+        body.pdf-mode .paar-card {
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 0;
+            border: none;
+            box-shadow: none;
+            border-radius: 0;
+            page-break-before: always;
+        }
+        body.pdf-mode .paar-card:first-child { page-break-before: auto; }
+        body.pdf-mode .paar-card-header {
+            margin-bottom: 0.7rem;
+            padding-bottom: 0.5rem;
+        }
+        body.pdf-mode .paar-card-title { font-size: 1.05rem; }
+        body.pdf-mode .paar-card-number { font-size: 0.65rem; margin-bottom: 0.15rem; }
+        body.pdf-mode .paar-card-meta { font-size: 0.72rem; }
+        body.pdf-mode .paar-step { margin-bottom: 0.7rem; }
+        body.pdf-mode .paar-step p { font-size: 0.78rem; line-height: 1.55; margin-bottom: 0.3rem; }
+        body.pdf-mode .paar-step ul { gap: 0.15rem; }
+        body.pdf-mode .paar-step ul li { font-size: 0.76rem; line-height: 1.5; }
+        body.pdf-mode .paar-step-label { font-size: 0.68rem; padding: 0.12rem 0.5rem; margin-bottom: 0.35rem; }
+        body.pdf-mode .paar-diagram { padding: 0.7rem; margin: 0.4rem 0; }
+        body.pdf-mode .paar-diagram-label { font-size: 0.68rem; margin-bottom: 0.35rem; }
+        body.pdf-mode .paar-flow-item { padding: 0.25rem 0.6rem; font-size: 0.7rem; }
+        body.pdf-mode .paar-flow-arrow { font-size: 0.8rem; }
+        body.pdf-mode .tag-list { margin-top: 0.6rem; padding-top: 0.5rem; }
+        body.pdf-mode .tag { font-size: 0.68rem; padding: 0.1rem 0.4rem; }
+
         /* PRINT */
         @media print {
             nav, .pdf-btn { display: none !important; }
@@ -650,6 +692,9 @@
         btn.textContent = '생성 중...';
         btn.disabled = true;
 
+        // PDF 모드 활성화 — 압축 스타일 적용
+        document.body.classList.add('pdf-mode');
+
         const hideSelectors = ['nav', '.pdf-btn', 'footer'];
         const hidden = [];
         hideSelectors.forEach(sel => {
@@ -661,24 +706,31 @@
 
         document.querySelectorAll('.fade-up').forEach(el => el.classList.add('visible'));
 
-        const hero = document.querySelector('.hero');
-        const origPadding = hero.style.paddingTop;
-        hero.style.paddingTop = '1.5rem';
+        // 각 paar-card에 페이지 분리 마커 추가
+        document.querySelectorAll('.paar-card').forEach((card, i) => {
+            if (i > 0) {
+                card.setAttribute('data-html2pdf-page-break', 'before');
+            }
+        });
 
         const opt = {
-            margin:       [10, 10, 10, 10],
+            margin:       [8, 12, 8, 12],
             filename:     '홍종민_PAAR_기술포트폴리오.pdf',
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
+            pagebreak:    { mode: ['css'], before: '[data-html2pdf-page-break="before"]' }
         };
 
         html2pdf().set(opt).from(document.body).save().then(() => {
+            // 원복
+            document.body.classList.remove('pdf-mode');
             hidden.forEach(({ el, display }) => {
                 el.style.display = display || '';
             });
-            hero.style.paddingTop = origPadding || '';
+            document.querySelectorAll('.paar-card').forEach(card => {
+                card.removeAttribute('data-html2pdf-page-break');
+            });
 
             btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF 다운로드';
             btn.disabled = false;
