@@ -687,54 +687,62 @@
     }, { threshold: 0.08 });
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
 
-    function downloadPDF() {
+    async function downloadPDF() {
         const btn = document.querySelector('.pdf-btn');
         btn.textContent = '생성 중...';
         btn.disabled = true;
 
-        // PDF 모드 활성화 — 압축 스타일 적용
+        const cards = document.querySelectorAll('.paar-card');
+        const filenames = [
+            '홍종민_PAAR_멀티테넌시_아키텍처.pdf',
+            '홍종민_PAAR_Redis_분산락_동시성제어.pdf',
+            '홍종민_PAAR_CICD_파이프라인.pdf'
+        ];
+
         document.body.classList.add('pdf-mode');
-
-        const hideSelectors = ['nav', '.pdf-btn', 'footer'];
-        const hidden = [];
-        hideSelectors.forEach(sel => {
-            document.querySelectorAll(sel).forEach(el => {
-                hidden.push({ el, display: el.style.display });
-                el.style.display = 'none';
-            });
-        });
-
         document.querySelectorAll('.fade-up').forEach(el => el.classList.add('visible'));
 
-        // 각 paar-card에 페이지 분리 마커 추가
-        document.querySelectorAll('.paar-card').forEach((card, i) => {
-            if (i > 0) {
-                card.setAttribute('data-html2pdf-page-break', 'before');
-            }
-        });
+        for (let i = 0; i < cards.length; i++) {
+            btn.textContent = `생성 중... (${i + 1}/${cards.length})`;
 
-        const opt = {
-            margin:       [8, 12, 8, 12],
-            filename:     '홍종민_PAAR_기술포트폴리오.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' },
-            pagebreak:    { mode: ['css'], before: '[data-html2pdf-page-break="before"]' }
-        };
+            // 현재 카드만 보이게
+            cards.forEach((card, j) => {
+                card.style.display = j === i ? '' : 'none';
+            });
 
-        html2pdf().set(opt).from(document.body).save().then(() => {
-            // 원복
-            document.body.classList.remove('pdf-mode');
+            // hero, legend, nav, footer, pdf-btn 숨기기
+            const hideSelectors = ['nav', '.pdf-btn', 'footer', '.hero', '.paar-legend'];
+            const hidden = [];
+            hideSelectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    hidden.push({ el, display: el.style.display });
+                    el.style.display = 'none';
+                });
+            });
+
+            const opt = {
+                margin:       [10, 14, 10, 14],
+                filename:     filenames[i],
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all'] }
+            };
+
+            await html2pdf().set(opt).from(document.querySelector('.container')).save();
+
+            // 숨긴 요소 복원
             hidden.forEach(({ el, display }) => {
                 el.style.display = display || '';
             });
-            document.querySelectorAll('.paar-card').forEach(card => {
-                card.removeAttribute('data-html2pdf-page-break');
-            });
+        }
 
-            btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF 다운로드';
-            btn.disabled = false;
-        });
+        // 전체 복원
+        cards.forEach(card => { card.style.display = ''; });
+        document.body.classList.remove('pdf-mode');
+
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF 다운로드';
+        btn.disabled = false;
     }
 </script>
 
